@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/media/HD_1_5/NasaPropeller/src/CSV/csv.h
+stdlib.h
+-
+stdio.h
+-
+
+/media/HD_1_5/NasaPropeller/src/CSV/libcsv.c
+stdint.h
+-
+csv.h
+/media/HD_1_5/NasaPropeller/src/CSV/csv.h
+

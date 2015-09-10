@@ -1,0 +1,54 @@
+PDS_VERSION_ID         = PDS3
+RECORD_TYPE            = FIXED_LENGTH
+RECORD_BYTES           = 3069
+FILE_RECORDS           = 310826
+^IMAGE_INDEX_TABLE     = "quick_index2.tab"
+
+OBJECT                   = IMAGE_INDEX_TABLE
+  INDEX_TYPE             = SINGLE
+  INTERCHANGE_FORMAT     = ASCII
+  ROWS                   = 310826
+  ROW_BYTES              = 3069
+  COLUMNS                = 119
+
+  OBJECT         = COLUMN
+    NAME         = FILE_NAME
+    DATA_TYPE    = CHARACTER
+    START_BYTE   = 2
+    BYTES        = 30
+    FORMAT       = A30
+    DESCRIPTION  = "The name of the image file as stored on the archive
+                    media."
+  END_OBJECT     = COLUMN
+
+  OBJECT         = COLUMN
+    NAME         = FILE_SPECIFICATION_NAME
+    DATA_TYPE    = CHARACTER
+    START_BYTE   = 35
+    BYTES        = 70
+    FORMAT       = A70
+    DESCRIPTION  = "Path name locating images in DATA directory on
+                    data set volumes."
+  END_OBJECT     = COLUMN
+  
+  OBJECT         = COLUMN
+    NAME         = INSTRUMENT_ID
+    DATA_TYPE    = CHARACTER
+    START_BYTE   = 108
+    BYTES        = 5
+    FORMAT       = A5
+    DESCRIPTION  = "Indicator of which camera took this image."
+  END_OBJECT     = COLUMN
+  
+  OBJECT         = COLUMN
+    NAME         = INSTRUMENT_MODE_ID
+    DATA_TYPE    = CHARACTER
+    START_BYTE   = 116
+    BYTES        = 4
+    FORMAT       = A4
+    DESCRIPTION  = "The summation mode used for this image."
+  END_OBJECT     = COLUMN
+
+END_OBJECT               = IMAGE_INDEX_TABLE
+
+END

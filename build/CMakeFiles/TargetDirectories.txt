@@ -1,0 +1,3 @@
+/media/HD_1_5/NasaPropeller/build/CMakeFiles/PropellerStats.dir
+/media/HD_1_5/NasaPropeller/build/CMakeFiles/PropellerTest.dir
+/media/HD_1_5/NasaPropeller/build/CMakeFiles/PropellerTrain.dir
