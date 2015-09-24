@@ -1,0 +1,95 @@
+Random Forests based Predict
+
+In Phase 2, the Psyho's submission in Phase 1 is modified to achieve my submission.
+
+Section 1: A brief description of Psyho's submission in Phase 1
+
+        Step  1. RadiusArray and LongitudeArray is calculated.
+        Step  2. Find a best offset (X,Y), to update the cache of RadiusArray and LongitudeArray.
+        Step  3. substracted_image, is defined double[][], is gain when subtractRings is applied to imageData.
+        Step  4. substracted_image = substracted_image - medianFilter(substracted_image);
+        Step  5. [1 1] is applied to erode Image.
+                 [1 1]
+        Step  6. If a pixel's absolute value is small than 0.0015, set the pixel to zero.
+        Step  7. Find 4-connected pixels as a object, some features of object is used to predict.
+        Step  8. Step 1 ~ 7 is applied for each trainData and testData.
+        Step  9. The features from Step 8 is used to tain and predict through Random Forests.
+        Step 10. Sort the value of predict, return the top 10000 objects.
+
+
+Section 2: My submission in Phase 2 is a modified version of the above.
+
+        Modification  1. Transformer.pixelPosition2RadiusLongitude() is modified to improve speed.
+
+        Modification  2. For get a better offset (X,Y). 
+                         In RingSubtractor.findBestOffset(), 
+                                terminateN is modified from 20 to 40
+                                searchStep is modified from 2.5 to 1
+
+        Modification  3. After step 4, There are a noise edge in substracted_image.
+                         If(y<6||x<6||y>1023-6 || x>1023-6), the pixel is set to 0; (LINE 1526, FUNCTION solve())
+
+        Modification  4. Before step 5, the bags of RADIUS is calculated which include average and standard deviation.
+                        The number of bags is RADIUS_BAGS = 2048.
+                        For each pixel of substracted_image
+                                avg = the mean of the pixels which have same radius
+                                std = the standard deviation of the pixels which have same radius
+                                If -3.5 > (substracted_image[y][x] - avg)/std, then
+                                        the pixel substracted_image[y][x] is not changed.
+                                        If 8 neighbors of substracted_image[y][x] is greater than substracted_image[y][x], then
+                                                the pixel substracted_image[y][x] is not changed.
+                                        End If
+                                Else If 3.5 < (substracted_image[y][x] - avg)/std, then
+                                        the pixel substracted_image[y][x] is not changed.
+                                        If 8 neighbors of substracted_image[y][x] is small than substracted_image[y][x], then
+                                                the pixel substracted_image[y][x] is not changed.
+                                        End If
+                                Else 
+                                        the pixel substracted_image[y][x] is set to 0.
+                                End If
+                        End For
+
+                        PS: 3.5 means a very small probability in the normal distribution. A normal random variable will
+                         lie outside the interval mean ¡À 1.96 * (standard deviation) in only 5% of cases.
+
+        Modification  5. Due to the Modification 4, in step 5, there are small changes about [1 1]'s condition.
+                                                                                             [1 1]
+                        Before: (img[y][x] > 0?1:0) + (img[y][x+1] > 0?1:0) + (img[y+1][x] > 0?1:0) + (img[y+1][x+1] > 0?1:0)
+                        Modify: (img[y][x] != 0?1:0) + (img[y][x+1] != 0?1:0) + (img[y+1][x] != 0?1:0) + (img[y+1][x+1] != 0?1:0)
+
+        Modification  6. The step 6 is deleted, because of the Modification 4.
+
+        Modification  7. Add 3 features which is about variance, which include:
+                           feature 1, the variance of whole image, 
+                           feature 2, the variance of the pixels which have same radius,
+                           feature 3, the variance of the pixels of the object from step 7.
+
+        Modification  8. The number of trees in random forests is changed form 200 to 400. (cfg.treesNo = 400)
+
+
+Section 3: My tried that didn't work.
+
+	1. medianFilter have two version in my code. medianFilter_avg and medianFilter_nth
+
+                Firstly, medianFilter_avg is faster than medianFilter_nth.
+
+                Secondly, due to step 6, medianFilter_avg shouldn't be used. 
+                           That was before; I don't know how it is now. 
+                            Now, the step 6 is deleted in modification 6.
+
+Section 4: Might be useful.
+
+        1. The best offset (X,Y) is very important. If a more precise radius is gained, 
+                the threshold 3.5 in step 4 can be decreased to find more potential objects.
+
+
+
+----------------------------------------------
+
+Call for submissions
+
+Congratulations on placing in the top 4 for this match!  As per the usual process, we now need you to send to us a 1-2 page description of your approach, including things like how your algorithm works, anything you tried that didn't work, or whatever else you feel might be useful.
+
+
+Thanks,
+Tim

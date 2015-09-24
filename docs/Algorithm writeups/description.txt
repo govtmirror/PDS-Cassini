@@ -1,0 +1,89 @@
+[Summary]
+
+This solution explains only Phase 2 solution. Generally speaking, the main change from phase 1 was some simple constant tweaking and adding more features to RF. The last-minute change was a modification of provided RingSubtractor (more on that later), which surprisingly added 90K to provisional score.
+
+My solution consists of 5 separate steps:
+1) Extract radius & longitude information using Transformer code.
+2) Remove the rings using slightly modified RingSubtractor code.
+3) Perform some simple image analysis and leave only non-background pixels.
+4) Find potential interesting detections (moonlets).
+5) Use a Random Forest (RF) in order to estimate the value of each of those detections and order them accordingly
+
+Steps 1-4 are performed within solve(), while the RF part is done inside the PropellerDetector class.
+
+As a side note: my solution is very similar to what I used in the AsteroidDetector contest.
+
+
+[Part 1 & Part 2 : Using Provided Code]
+
+Transformer code is left unchanged (apart from converting Java to C++). I validated it against given ground truth and it seems that it works correctly. 
+
+There were few modifications to RingSubtractor. First of all, as you probably now, it works horribly bad :) I understand the main reason is that rings aren't perfectly circular, and thus the provided method can't work at all. At the same time, I was too lazy during the contest to do it correctly (which honestly was a bad decision, since I believe that was the most important thing we should've done). I modified several constants for the "gradient descent" in order to improve it's accuracy (the original ones were quite badly chosen). My last-minute change was to use 2D bins - I used both radius and longitude. This is a quick-hack to greatly improve quality of the ring removal functionality, but for some reason it looked like I've done it incorrectly (the produced images were from what I expected), so I think I made a mistake somewhere and unfortunately ran out of time in order to implement it correctly.
+
+I didn't use any other provided code since it was, honestly speaking, worthless. It was extremely badly written and had nothing really interesting in it. There's nothing really to add here :) And to be clear, the Transformer class was _very_ useful and it was a great idea to provide it for the competitors. 
+
+
+[Part 3 : Image Analysis]
+
+After subtracting rings, I use a simple median filter. Then I work almost exclusively on (normal - median) image. This is the same technique I used in AsteroidDetector contest, and the idea behind is that median filter is pretty good at creating background image. Plus in this case, it also helps a bit with removing rings. I'm unable to tell if using median filter would be a correct idea in case we had a very good ring subtraction algorithm.
+
+The first step (findObjects() function) is to remove uninteresting parts of the image. Our interesting objects can have both positive (brigther than background) and negative (darker than background) values, due to the way they interract with Saturn's rings. I scan through all 2x2 blocks and leave only those that are above some certain absolute threshold, and when all of them have the same sign. I'm pretty sure that my threshold can be lowered to improve the quality of my predictions, but due to the limited amount of data, I didn't want to risk generating insane amounts of potential detections
+
+[Part 4: Generating Detections]
+
+Generating detection is just a flood-fill (connected components) algorithm joining all pixels above some certain hardcoded threshold where all pixels have the same sign (either entirely negative or positive).
+
+All of the features are floating-point numbers and the first four numbers are not used in prediction. My comments regarding some features are placed in brackets.
+
+List of generated features:
+
+#0 : ImageId 
+#1 : X position AVG : [AVG means it's the average among all of the pixels inside this detection/component]
+#2 : Y position AVG 
+#3 : reserved
+
+#4 : Radius AVG
+#5 : abs(Value) AVG : [Value means the values of pixels in (normal - median) image]
+#6 : OrigValue AVG : [OrigValue means the values of pixels in original unprocessed (still with rings) image]
+#7 : Value AVG
+#8 : Value^2 AVG
+#9 : component size : [Number of pixels in the component]
+#10 : average Value in RadiusBin : [I calculate the average pixel values in bins based on the radius, those features help greatly because the ring subtraction is far from ideal]
+#11 : average Value in RadiusBin - Value AVG
+#12 : average positive Value in RadiusBin
+#13 : average negative Value in RadiusBin
+#14 : max(Radius) - min(Radius) : [Length]
+#15 : max(Longitude) - min(Longitude) : {Width]
+#16 : #15 / #14 : [Apect Ratio]
+
+(The following features are added in enhanceFeatures() - this is a separate step, because they require all other detections to be done)
+#17 : number of detections in this image
+#18 : number of detections in this RadiusBin : [The bins are calculated in the same way as for features #10-13]
+#19 : number of detections within some close distance : [This is another last-minute addition, and I'm not sure if it works correctly at all, the reason it's here is that "propellers" often produce two separate objects in my solution, so I thought that this feature can somehow magically use it. Not sure if it does though :)]
+
+I checked all the features importances (except #19) quite thoroughly and, as far as I remember, all of them were very important.
+
+
+[Random Forest]
+
+I use a rather standard RF implementation similar to the one that can be find in Extremely Randomized Forest paper. The main difference is that I use a custom number of features/samples instead of original |features|/1. When calculating the best split I use MCE (Mean Cubic Error) metric. All of the relevant attributes for my RF can be found in RandomForestConfig class.
+
+
+[Object Linking]
+
+I used a very naive heuristic in order to link detections. Since most of the images contained only one moonlet and we often were given series of the images within short time frame, I simply joined all of the detections in those images into a single group. I didn't do any linking outside the groups. The groups were computed based on file IDs, since this was slightly faster to implement than parsing the time in provided startTime argument.
+
+In my local tester I checked the optimal score I would get If I had correctly identified all of the objects, and it turned out that my heuristic was actually getting around 50-60% of possible score, which probably was very hard to beat, so I didn't try to improve that part of my solution. Instead, I focused on propeller detection.
+
+
+[Further Comments]
+
+- There were few duplicated objects in the provided ground truth files. Nothing to the extent that could be found in AsteroidDetector contest, but still it shouldn't be there.
+
+- A lot of objects didn't have any name. During the "Linking Scoring" function they all treated as a single objects, which I don't think it should be the case. Unfortunately I have noticed it too late (in phase 2), so I didn't report it.
+
+- As you know, there was not enough data to fully develop our solutions. This made the whole contest and especially the final results a bit of a guessing game.
+
+- I can honestly say that my approach is really badly done. First of all, we need a very good ring subtraction routine (which is far from trivial, but at the same time, it wasn't too hard to do anything that would work better than provided one). The correct approach would be to use convolutional neural networks which are considered state-of-the-art approaches in image recognition. We would still need very good heuristics for image detection. 
+
+- There was not enough time in order to create a decent solution for phase 1, especially for C++ developers, because both tester and provided code supported only Java language. I hope, this was a one-time accident and in the future testing code will support all the languages as it was always done in the past.
